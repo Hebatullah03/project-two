@@ -1,1 +1,119 @@
+-- 2. ENUM TYPES (Custom Data Types)
+CREATE TYPE user_status_type AS ENUM ('active', 'inactive', 'suspended');
+CREATE TYPE session_status_type AS ENUM ('scheduled', 'in_progress', 'completed', 'cancelled');
+CREATE TYPE alert_severity_type AS ENUM ('low', 'medium', 'high', 'critical');
+CREATE TYPE alert_status_type AS ENUM ('triggered', 'acknowledged', 'resolved');
+CREATE TYPE camera_status_type AS ENUM ('online', 'offline', 'maintenance');
+CREATE TYPE emotion_type AS ENUM ('neutral', 'happy', 'sad', 'angry', 'surprised', 'scared', 'disgusted', 'distressed');
 
+-- 4. TABLES
+
+-- Roles
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Users
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL,
+    full_name VARCHAR(255) NOT NULL,
+    date_of_birth DATE,
+    phone VARCHAR(20),
+    status user_status_type DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User Logins (Security separation)
+CREATE TABLE user_logins (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Employees (Specialized User)
+CREATE TABLE employees (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    employee_number VARCHAR(50) UNIQUE NOT NULL,
+    department_name VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Doctors (Specialized Employee)
+CREATE TABLE doctors (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+    specialization VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Patients (Specialized User)
+CREATE TABLE patients (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Cameras
+CREATE TABLE cameras (
+    id SERIAL PRIMARY KEY,
+    location_name VARCHAR(255) NOT NULL,
+    status camera_status_type DEFAULT 'online',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sessions
+CREATE TABLE sessions (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER REFERENCES patients(id) ON DELETE CASCADE,
+    status session_status_type DEFAULT 'scheduled',
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    report_summary TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Emotion Results
+CREATE TABLE emotion_results (
+    id SERIAL PRIMARY KEY,
+    session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+    camera_id INTEGER REFERENCES cameras(id) ON DELETE SET NULL,
+    emotion emotion_type DEFAULT 'neutral',
+    percentage DECIMAL(5,2) CHECK (percentage >= 0 AND percentage <= 100),
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Alerts
+CREATE TABLE alerts (
+    id SERIAL PRIMARY KEY,
+    severity alert_severity_type,
+    status alert_status_type DEFAULT 'triggered',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Junction Table for Many-to-Many relationship
+CREATE TABLE alert_emotion_results (
+    id SERIAL PRIMARY KEY,
+    alert_id INTEGER NOT NULL,
+    emotion_result_id INTEGER NOT NULL,
+    FOREIGN KEY (alert_id) REFERENCES alerts(id) ON DELETE CASCADE,
+    FOREIGN KEY (emotion_result_id) REFERENCES emotion_results(id) ON DELETE CASCADE,
+    UNIQUE (alert_id, emotion_result_id)
+);
