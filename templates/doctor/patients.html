@@ -1,0 +1,119 @@
+﻿{% extends 'base.html' %}
+{% block title %}
+  Patients - EmotiCare
+{% endblock %}
+
+{% block body_content %}
+<body class="bg-background min-h-screen flex">
+  {% include "partials/doctor_sidebar.html" %}
+
+  <main class="flex-1 ml-64">
+    <header class="bg-card border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">Patients</h1>
+        <p class="text-muted-foreground text-sm">View and manage your patients</p>
+      </div>
+    </header>
+
+    <div class="p-8">
+      {% if messages %}
+        <div class="mb-6 space-y-2">
+          {% for message in messages %}
+            <div class="px-4 py-3 rounded-xl text-sm font-medium
+              {% if message.tags == 'success' %}
+                bg-green-500/10 text-green-600 border border-green-500/30
+              {% elif message.tags == 'error' %}
+                bg-red-500/10 text-red-600 border border-red-500/30
+              {% else %}
+                bg-blue-500/10 text-blue-600 border border-blue-500/30
+              {% endif %}
+            ">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="GET" class="flex items-center gap-4 mb-6">
+        <div class="relative flex-1 max-w-xl">
+          <svg class="w-5 h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input type="text" name="search" value="{{ search_query }}" placeholder="Search patients..." class="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <input type="hidden" name="sort" value="{{ sort_by }}" />
+        <button class="px-4 py-2 bg-primary rounded-lg text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+          Search
+        </button>
+      </form>
+
+      <div class="bg-card border border-border rounded-2xl overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-secondary/50">
+            <tr>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Patient</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Relation</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Gender</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Date of Birth</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Contact</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            {% for patient in patients %}
+              <tr class="hover:bg-secondary/30 transition-colors">
+                <td class="py-4 px-6">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-semibold">
+                      {{ patient.user.first_name|default:'P'|slice:':1' }}{{ patient.user.last_name|default:''|slice:':1' }}
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-foreground">{{ patient.user.first_name }} {{ patient.user.last_name }}</p>
+                      <p class="text-xs text-muted-foreground">ID: {{ patient.id }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-4 px-6">
+                  <span class="px-2 py-1 text-xs font-medium rounded-full
+                    {% if patient.relation == 'Assigned' %}
+                      bg-green-500/10 text-green-600 border border-green-500/30
+                    {% else %}
+                      bg-blue-500/10 text-blue-600 border border-blue-500/30
+                    {% endif %}
+                  ">
+                    {{ patient.relation }}
+                  </span>
+                </td>
+                <td class="py-4 px-6 text-sm text-foreground">{{ patient.gender|default:'-' }}</td>
+                <td class="py-4 px-6 text-sm text-foreground">{{ patient.user.date_of_birth|default:'-' }}</td>
+                <td class="py-4 px-6 text-sm text-foreground">{{ patient.user.phone|default:'-' }}</td>
+                <td class="py-4 px-6">
+                  <div class="flex gap-2">
+                    <a href="{% url 'core:doctor_sessions' %}?patient_id={{ patient.id }}" class="px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors inline-flex items-center justify-center">
+                      Sessions
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="py-10 text-center text-muted-foreground">No patients found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-center mt-6 gap-2">
+        {% if patients.has_previous %}
+          <a href="?page={{ patients.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}" class="px-3 py-1 bg-secondary rounded text-white/80">Prev</a>
+        {% endif %}
+        <span class="px-3 py-1 text-foreground">Page {{ patients.number }} of {{ patients.paginator.num_pages }}</span>
+        {% if patients.has_next %}
+          <a href="?page={{ patients.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}" class="px-3 py-1 bg-secondary rounded text-white/80">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</body>
+{% endblock %}

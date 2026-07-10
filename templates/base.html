@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}EmotiCare{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#1a1a2e',
+            foreground: '#eaeaea',
+            card: '#22223b',
+            'card-foreground': '#eaeaea',
+            primary: '#4ecdc4',
+            'primary-foreground': '#1a1a2e',
+            secondary: '#2d2d44',
+            'secondary-foreground': '#eaeaea',
+            muted: '#2d2d44',
+            'muted-foreground': '#a0a0a0',
+            border: '#3d3d5c',
+            input: '#2d2d44',
+            'emotion-happy': '#4ecdc4',
+            'emotion-sad': '#6c8fea',
+            'emotion-angry': '#e74c3c',
+            'emotion-neutral': '#a0a0a0',
+            'emotion-anxious': '#f39c12',
+            'emotion-fearful': '#9b59b6',
+            'alert-low': '#4ecdc4',
+            'alert-medium': '#f39c12',
+            'alert-high': '#e74c3c',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {% block head_extra %}{% endblock %}
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .sidebar-link.active {
+      background-color: rgba(78, 205, 196, 0.1);
+      color: #4ecdc4;
+      border-left: 3px solid #4ecdc4;
+    }
+    .sidebar-link:hover {
+      background-color: rgba(78, 205, 196, 0.05);
+    }
+  </style>
+</head>
+  {% block body_content %}{% endblock %}
+</html>

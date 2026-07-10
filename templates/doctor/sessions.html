@@ -1,0 +1,253 @@
+﻿{% extends 'base.html' %}
+{% block title %}
+  Sessions - EmotiCare
+{% endblock %}
+{% block body_content %}
+<body class="bg-background min-h-screen flex">
+  <!-- Sidebar -->
+  {% include "partials/doctor_sidebar.html" %}
+
+  <!-- Main Content -->
+  <main class="flex-1 ml-64">
+    <header class="bg-card border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">Sessions</h1>
+        <p class="text-muted-foreground text-sm">View your appointments</p>
+      </div>
+    </header>
+
+    <div class="p-8">
+      <div class="grid grid-cols-3 gap-6 mb-8">
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground mb-2">Total Today</p>
+          <p class="text-3xl font-bold text-foreground">{{ stats.total_today }}</p>
+        </div>
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground mb-2">Scheduled</p>
+          <p class="text-3xl font-bold text-emotion-anxious">{{ stats.scheduled }}</p>
+        </div>
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground mb-2">Completed</p>
+          <p class="text-3xl font-bold text-emotion-happy">{{ stats.completed }}</p>
+        </div>
+      </div>
+
+      {% if messages %}
+        <div class="mb-6 space-y-2">
+          {% for message in messages %}
+            <div class="px-4 py-3 rounded-xl text-sm font-medium
+              {% if message.tags == 'success' %}
+                bg-green-500/10 text-green-600 border border-green-500/30
+              {% elif message.tags == 'error' %}
+                bg-red-500/10 text-red-600 border border-red-500/30
+              {% else %}
+                bg-blue-500/10 text-blue-600 border border-blue-500/30
+              {% endif %}
+            ">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="GET" class="flex items-center gap-4 mb-6">
+        <div class="relative flex-1 max-w-md">
+          <svg class="w-5 h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input type="text" name="search" value="{{ search_query }}" placeholder="Search patients..." class="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2.5 text-foreground" />
+        </div>
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        <button class="px-4 py-2 bg-primary rounded-lg text-primary-foreground">Search</button>
+      </form>
+
+      <div class="bg-card border border-border rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-secondary/50">
+              <tr>
+                <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Patient</th>
+                <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Time</th>
+                <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Status</th>
+                <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              {% for session in sessions %}
+                <tr class="hover:bg-secondary/30 transition-colors">
+                  <td class="py-4 px-6 text-sm text-foreground">{{ session.patient.user.first_name }} {{ session.patient.user.last_name }}</td>
+                  <td class="py-4 px-6 text-sm text-foreground">{{ session.start_time|date:"M j, Y g:i A" }}</td>
+                  <td class="py-4 px-6">
+                    {% if session.status == 'scheduled' %}
+                      <span class="inline-flex items-center px-2.5 py-1 bg-emotion-anxious/20 text-emotion-anxious rounded-full text-xs font-medium">Scheduled</span>
+                    {% elif session.status == 'in_progress' %}
+                      <span class="inline-flex items-center px-2.5 py-1 bg-primary/20 text-primary rounded-full text-xs font-medium">In Progress</span>
+                    {% elif session.status == 'completed' %}
+                      <span class="inline-flex items-center px-2.5 py-1 bg-emotion-happy/20 text-emotion-happy rounded-full text-xs font-medium">Completed</span>
+                    {% elif session.status == 'cancelled' %}
+                      <span class="inline-flex items-center px-2.5 py-1 bg-alert-high/20 text-alert-high rounded-full text-xs font-medium">Cancelled</span>
+                    {% else %}
+                      <span class="text-muted-foreground text-xs">{{ session.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="py-4 px-6">
+                    <div class="flex gap-2 items-center flex-wrap">
+                      <button type="button"
+                              class="open-session-modal inline-flex items-center justify-center px-3 py-1.5 bg-secondary text-foreground text-sm font-medium rounded-lg hover:bg-secondary/90 transition-colors"
+                              data-session-id="{{ session.id }}"
+                              data-doctor="{{ session.doctor.employee.user.first_name }} {{ session.doctor.employee.user.last_name }}"
+                              data-patient="{{ session.patient.user.first_name }} {{ session.patient.user.last_name }}"
+                              data-start="{{ session.start_time|date:'M j, Y g:i A' }}"
+                              data-end="{% if session.end_time %}{{ session.end_time|date:'M j, Y g:i A' }}{% else %}-{% endif %}"
+                              data-status="{{ session.status }}"
+                              data-summary="{{ session.report_summary|default:''|escape }}">
+                        View details
+                      </button>
+
+                      {% if session.status != 'completed' and session.status != 'cancelled' %}
+                        <details class="group">
+                          <summary class="inline-flex items-center px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors cursor-pointer">
+                            End
+                          </summary>
+                          <form method="POST" action="{% url 'core:doctor_end_session' session.id %}" class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 hidden">
+                            {% csrf_token %}
+                            <div class="w-full max-w-md rounded-2xl bg-card border border-border p-6 space-y-4">
+                              <h3 class="text-lg font-semibold text-foreground">End session</h3>
+                              <textarea name="report_summary" rows="4" required placeholder="Enter session report summary" class="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                              <div class="flex gap-2 justify-end">
+                                <button type="button" class="px-3 py-1.5 border border-border rounded-lg text-sm text-muted-foreground hover:bg-secondary" onclick="this.closest('form').style.display='none'">Cancel</button>
+                                <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">Submit and End</button>
+                              </div>
+                            </div>
+                          </form>
+                          <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                              const summaries = document.querySelectorAll('details > summary');
+                              summaries.forEach(summary => {
+                                summary.addEventListener('click', function(e) {
+                                  const form = this.parentElement.querySelector('form');
+                                  if (form && form.classList.contains('hidden')) {
+                                    form.classList.remove('hidden');
+                                    form.style.display = 'flex';
+                                  }
+                                });
+                              });
+                            });
+                          </script>
+                        </details>
+                      {% else %}
+                        <span class="text-sm text-muted-foreground">No action</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="py-10 text-center text-muted-foreground">No sessions available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="sessionModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 px-4 py-6">
+        <div class="w-full max-w-3xl overflow-hidden rounded-3xl bg-card border border-border shadow-2xl">
+          <div class="flex items-center justify-between border-b border-border px-6 py-4">
+            <div>
+              <h2 class="text-xl font-semibold text-foreground">Session details</h2>
+              <p class="text-sm text-muted-foreground">Review and update the report summary.</p>
+            </div>
+            <button id="closeSessionModal" type="button" class="text-muted-foreground hover:text-foreground">
+              ✕
+            </button>
+          </div>
+
+          <form id="sessionModalForm" method="POST" action="" class="space-y-6 px-6 py-6">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <p class="text-xs uppercase tracking-wide text-muted-foreground">Doctor</p>
+                <p id="modalDoctor" class="text-sm font-medium text-foreground"></p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-wide text-muted-foreground">Patient</p>
+                <p id="modalPatient" class="text-sm font-medium text-foreground"></p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-wide text-muted-foreground">Start</p>
+                <p id="modalStart" class="text-sm font-medium text-foreground"></p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-wide text-muted-foreground">End</p>
+                <p id="modalEnd" class="text-sm font-medium text-foreground"></p>
+              </div>
+              <div class="md:col-span-2">
+                <p class="text-xs uppercase tracking-wide text-muted-foreground">Status</p>
+                <p id="modalStatus" class="text-sm font-medium text-foreground"></p>
+              </div>
+            </div>
+
+            <div>
+              <label for="modalReportSummary" class="text-xs uppercase tracking-wide text-muted-foreground">Report summary</label>
+              <textarea id="modalReportSummary" name="report_summary" rows="6" class="mt-2 w-full rounded-2xl border border-border bg-secondary px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Enter or update the session report summary"></textarea>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button type="button" id="closeSessionModalFooter" class="rounded-xl border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary">Close</button>
+              <button type="submit" class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save summary</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <script>
+        const sessionModal = document.getElementById('sessionModal');
+        const modalDoctor = document.getElementById('modalDoctor');
+        const modalPatient = document.getElementById('modalPatient');
+        const modalStart = document.getElementById('modalStart');
+        const modalEnd = document.getElementById('modalEnd');
+        const modalStatus = document.getElementById('modalStatus');
+        const modalReportSummary = document.getElementById('modalReportSummary');
+        const sessionModalForm = document.getElementById('sessionModalForm');
+
+        document.querySelectorAll('.open-session-modal').forEach(button => {
+          button.addEventListener('click', () => {
+            const sessionId = button.dataset.sessionId;
+            modalDoctor.textContent = button.dataset.doctor;
+            modalPatient.textContent = button.dataset.patient;
+            modalStart.textContent = button.dataset.start;
+            modalEnd.textContent = button.dataset.end;
+            modalStatus.textContent = button.dataset.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            modalReportSummary.value = button.dataset.summary || '';
+            sessionModalForm.action = `/doctor/sessions/${sessionId}/update-report/`;
+            sessionModal.classList.remove('hidden');
+          });
+        });
+
+        const closeSessionModal = () => {
+          sessionModal.classList.add('hidden');
+        };
+
+        document.getElementById('closeSessionModal').addEventListener('click', closeSessionModal);
+        document.getElementById('closeSessionModalFooter').addEventListener('click', closeSessionModal);
+        sessionModal.addEventListener('click', event => {
+          if (event.target === sessionModal) {
+            closeSessionModal();
+          }
+        });
+      </script>
+
+      <div class="flex justify-center mt-6 gap-2">
+        {% if sessions.has_previous %}
+          <a href="?page={{ sessions.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}" class="px-3 py-1 bg-secondary rounded text-white/80">Prev</a>
+        {% endif %}
+        <span class="px-3 py-1 text-foreground">Page {{ sessions.number }} of {{ sessions.paginator.num_pages }}</span>
+        {% if sessions.has_next %}
+          <a href="?page={{ sessions.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}" class="px-3 py-1 bg-secondary rounded text-white/80">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</body>
+{% endblock %}

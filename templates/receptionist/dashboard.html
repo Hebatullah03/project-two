@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}
+  Dashboard - EmotiCare
+{% endblock %}
+{% block body_content %}
+<body class="bg-background min-h-screen flex">
+  <!-- Sidebar -->
+   {% include "partials/receptionist_sidebar.html" %}
+
+  <!-- Main Content -->
+  <main class="flex-1 ml-64">
+    <!-- Header -->
+    <header class="bg-card border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p class="text-muted-foreground text-sm">Manage patients and sessions</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <button class="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-alert-high rounded-full"></span>
+        </button>
+        <div class="text-right">
+          <p class="text-sm font-medium text-foreground">Today</p>
+          <p class="text-xs text-muted-foreground">{% now "F j, Y" %}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <div class="p-8">
+      <!-- Quick Actions -->
+      <div class="grid grid-cols-2 gap-6 mb-8">
+        <a href="{% url 'core:receptionist_patients' %}" class="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 transition-all group">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+              <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-foreground">Register Patient</h2>
+              <p class="text-sm text-muted-foreground">Add new patient to the system</p>
+            </div>
+          </div>
+        </a>
+        <a href="{% url 'core:receptionist_sessions' %}" class="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 transition-all group">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-emotion-sad/20 rounded-2xl flex items-center justify-center group-hover:bg-emotion-sad/30 transition-colors">
+              <svg class="w-7 h-7 text-emotion-sad" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-foreground">Create Session</h2>
+              <p class="text-sm text-muted-foreground">Schedule a new appointment</p>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-4 gap-6 mb-8">
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-3xl font-bold text-foreground mb-1">{{ total_patients }}</p>
+          <p class="text-sm text-muted-foreground">Total Patients</p>
+        </div>
+
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-emotion-anxious/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-emotion-anxious" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-3xl font-bold text-foreground mb-1">{{ waiting_sessions }}</p>
+          <p class="text-sm text-muted-foreground">In Waiting Room</p>
+        </div>
+
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-emotion-sad/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-emotion-sad" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-3xl font-bold text-foreground mb-1">{{ today_sessions }}</p>
+          <p class="text-sm text-muted-foreground">Today&apos;s Sessions</p>
+        </div>
+
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-alert-high/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-alert-high" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-3xl font-bold text-foreground mb-1">{{ active_alerts }}</p>
+          <p class="text-sm text-muted-foreground">Active Alerts</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6">
+        <!-- Upcoming Sessions -->
+        <div class="col-span-2 bg-card border border-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-foreground">Upcoming Sessions</h2>
+            <a href="{% url 'core:receptionist_sessions' %}" class="text-sm text-primary hover:underline">View All</a>
+          </div>
+          <div class="space-y-3">
+            {% for session in upcoming_sessions %}
+            <div class="flex items-center justify-between p-4 bg-secondary/50 rounded-xl">
+              
+              <div class="flex items-center gap-4">
+                <!-- Initials -->
+                <div class="w-10 h-10 bg-emotion-anxious/20 rounded-full flex items-center justify-center text-emotion-anxious font-semibold text-sm">
+                  {{ session.patient.user.first_name|slice:":1" }}{{ session.patient.user.last_name|slice:":1" }}
+                </div>
+
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    {{ session.patient.user.first_name }} {{ session.patient.user.last_name }}
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    Session ID: {{ session.id }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="text-right">
+                <p class="text-sm font-medium text-foreground">
+                  {{ session.start_time|time:"h:i A" }}
+                </p>
+
+                <!-- Status Badge -->
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                  {% if session.status == 'scheduled' %}
+                    bg-primary/20 text-primary
+                  {% elif session.status == 'in_progress' %}
+                    bg-emotion-anxious/20 text-emotion-anxious
+                  {% elif session.status == 'completed' %}
+                    bg-emotion-happy/20 text-emotion-happy
+                  {% else %}
+                    bg-secondary text-foreground
+                  {% endif %}
+                ">
+                  {{ session.get_status_display }}
+                </span>
+              </div>
+
+            </div>
+            {% empty %}
+            <p class="text-muted-foreground text-sm">No upcoming sessions</p>
+            {% endfor %}
+           </div>
+         </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+{% endblock %}

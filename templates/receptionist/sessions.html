@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block title %}
+Sessions - EmotiCare
+{% endblock %}
+{% block body_content %}
+
+<body class="bg-background min-h-screen flex">
+  <!-- Sidebar -->
+  {% include "partials/receptionist_sidebar.html" %}
+
+  <!-- Main Content -->
+  <main class="flex-1 ml-64">
+    <header class="bg-card border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">Sessions</h1>
+        <p class="text-muted-foreground text-sm">Schedule and manage appointments</p>
+      </div>
+      <button id="openSessionModal"
+        class="px-4 py-2.5 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+        Create Session
+      </button>
+    </header>
+
+    <div class="p-8">
+      <!-- Session Stats -->
+      <div class="grid grid-cols-3 gap-6 mb-8">
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground mb-2">Total Today</p>
+          <p class="text-3xl font-bold text-foreground">{{ stats.total_today }}</p>
+        </div>
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground mb-2">Scheduled</p>
+          <p class="text-3xl font-bold text-emotion-anxious">{{ stats.waiting }}</p>
+        </div>
+   
+        <div class="bg-card border border-border rounded-2xl p-6">
+          <p class="text-sm text-muted-foreground mb-2">Completed</p>
+          <p class="text-3xl font-bold text-emotion-happy">{{ stats.completed }}</p>
+        </div>
+      </div>
+
+      {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="px-4 py-3 rounded-xl text-sm font-medium
+              {% if message.tags == 'success' %}
+                bg-green-500/10 text-green-600 border border-green-500/30
+              {% elif message.tags == 'error' %}
+                bg-red-500/10 text-red-600 border border-red-500/30
+              {% else %}
+                bg-blue-500/10 text-blue-600 border border-blue-500/30
+              {% endif %}
+            ">
+          {{ message }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="GET" class="flex items-center gap-4 mb-6">
+        <div class="relative flex-1 max-w-md">
+          <svg class="w-5 h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" fill="none"
+            stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input type="text" name="search" value="{{ search_query }}" placeholder="Search doctors or patients..."
+            class="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-2.5 text-foreground">
+        </div>
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        <button class="px-4 py-2 bg-primary rounded-lg">
+          Search
+        </button>
+      </form>
+      <!-- Sessions Table -->
+      <div class="bg-card border border-border rounded-2xl overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-secondary/50">
+            <tr>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Patient</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Doctor</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Time</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Status</th>
+              <th class="text-left py-4 px-6 text-sm font-medium text-muted-foreground">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            {% for session in sessions %}
+            <tr class="hover:bg-secondary/30 transition-colors">
+              <td class="py-4 px-6 text-sm text-foreground">{{ session.patient.user.first_name }} {{ session.patient.user.last_name }}</td>
+              <td class="py-4 px-6 text-sm text-foreground">Dr. {{ session.doctor.employee.user.first_name }} {{ session.doctor.employee.user.last_name }}</td>
+              <td class="py-4 px-6 text-sm text-foreground">{{ session.start_time|date:"M j, Y g:i A" }}</td>
+              <td class="py-4 px-6">
+                {% if session.status == "scheduled" %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 bg-emotion-anxious/20 text-emotion-anxious rounded-full text-xs font-medium">
+                  Scheduled
+                </span>
+
+                {% elif session.status == "in_progress" %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 bg-primary/20 text-primary rounded-full text-xs font-medium">
+                  In Progress
+                </span>
+
+                {% elif session.status == "completed" %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 bg-emotion-happy/20 text-emotion-happy rounded-full text-xs font-medium">
+                  Completed
+                </span>
+
+                {% elif session.status == "cancelled" %}
+                <span
+                  class="inline-flex items-center px-2.5 py-1 bg-alert-high/20 text-alert-high rounded-full text-xs font-medium">
+                  Cancelled
+                </span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-6">
+                {% if session.status != 'completed' and session.status != 'cancelled' %}
+                <div class="flex gap-2">
+                  <button
+                    class="px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                    onclick="editSession(
+                    '{{ session.id }}',
+                    '{{ session.patient.id }}',
+                    '{{ session.doctor.id }}',
+                    '{{ session.start_time|date: "Y-m-d H:i" }}' )">
+                    Edit
+                  </button>
+                  <form method="POST" action="{% url 'core:cancel_session' session.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                      class="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm font-medium rounded-lg hover:bg-red-500/20 transition-colors">
+                      Cancel
+                    </button>
+                  </form>
+                </div>
+                {% else %}
+                <span class="text-sm text-muted-foreground">No action</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% comment %} {% empty %}
+            '{{ patient.gender }}',
+            '{{ patient.user.date_of_birth }}',
+            '{{ patient.doctor_id }}'
+            )">
+            Edit
+            </button>
+      </div>
+      </td>
+      </tr>
+      {% comment %} {% empty %}
+      <p class="text-muted-foreground text-sm">No sessions</p> {% endcomment %}
+      {% endfor %}
+      </tbody>
+      </table>
+    </div>
+    <div class="flex justify-center mt-6 gap-2">
+
+      {% if sessions.has_previous %}
+      <a href="?page={{ sessions.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}"
+        class="px-3 py-1 bg-secondary rounded text-white/80">
+        Prev
+      </a>
+      {% endif %}
+
+      <span class="px-3 py-1 text-foreground">
+        Page {{ sessions.number }} of {{ sessions.paginator.num_pages }}
+      </span>
+
+      {% if sessions.has_next %}
+      <a href="?page={{ sessions.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}"
+        class="px-3 py-1 bg-secondary rounded text-white/80">
+        Next
+      </a>
+      {% endif %}
+
+    </div>
+    </div>
+  </main>
+
+  <!-- Create Session Modal -->
+  <div id="sessionModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-card border border-border rounded-2xl p-8 w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-foreground">Create New Session</h2>
+        <button id="closeSessionModal" class="text-muted-foreground hover:text-foreground">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <form class="space-y-4" method="POST">
+        <input type="hidden" name="session_id" id="sessionIdInput">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Select Patient</label>
+          <select name="patient"
+            class="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Select a patient</option>
+            {% for patient in patients %}
+            <option value="{{ patient.id }}">{{ patient.user.first_name }} {{ patient.user.last_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Select Doctor</label>
+          <select name="doctor"
+            class="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Select a doctor</option>
+            {% for doctor in doctors %}
+            <option value="{{ doctor.id }}">Dr. {{ doctor.employee.user.first_name }} {{ doctor.employee.user.last_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">Date</label>
+            <input name="date" type="date"
+              class="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2">Time</label>
+            <input name="time" type="time"
+              class="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+          </div>
+        </div>
+        {% comment %} <div>
+          <label class="block text-sm font-medium text-foreground mb-2">Notes (Optional)</label>
+          <textarea name="notes" rows="3" placeholder="Add any notes..."
+            class="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"></textarea>
+        </div> {% endcomment %}
+        <div class="flex gap-3 pt-4">
+          <button type="button" id="cancelSessionModal"
+            class="flex-1 py-3 bg-secondary text-foreground font-medium rounded-xl hover:bg-secondary/80 transition-colors">Cancel</button>
+          <button type="submit"
+            class="flex-1 py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors">Create
+            Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const modal = document.getElementById("sessionModal");
+      const sessionIdInput = document.getElementById("sessionIdInput");
+      const openBtn = document.getElementById("openSessionModal");
+      const closeBtn = document.getElementById("closeSessionModal");
+      const cancelBtn = document.getElementById("cancelSessionModal");
+      const submitBtn = document.querySelector("#sessionModal button[type='submit']");
+      const title = document.querySelector("#sessionModal h2");
+
+      function openModal() {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function closeModal() {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      openBtn.onclick = () => {
+        sessionIdInput.value = "";
+        title.textContent = "Create Session";
+        submitBtn.textContent = "Create";
+        openModal();
+      };
+
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+
+      window.editSession = function (id, patient, doctor, startTime) {
+        sessionIdInput.value = id;
+        if (startTime) {
+          const dt = new Date(startTime.replace(" ", "T"));
+
+          const date = dt.toISOString().split("T")[0];
+          const time = dt.toTimeString().slice(0, 5);
+
+          document.querySelector("[name='date']").value = date;
+          document.querySelector("[name='time']").value = time;
+        }
+
+        document.querySelector("[name='patient']").value = patient;
+        document.querySelector("[name='doctor']").value = doctor;
+
+        title.textContent = "Edit Session";
+        submitBtn.textContent = "Update";
+
+        openModal();
+      };
+
+      modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+      };
+
+    });
+  </script>
+</body>
+{% endblock %}
